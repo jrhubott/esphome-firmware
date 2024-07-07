@@ -369,6 +369,11 @@ voice_assistant:
     - script.execute: draw_display
 
 script:
+  - id: set_volume
+    then:
+      - media_player.volume_set:
+          volume: !lambda return 0.5 + id(speaker_volume) * 0.05 ;
+
   - id: draw_display
     then:
       - if:
@@ -868,3 +873,14 @@ display:
           it.fill(Color::BLACK);
           id(draw_timer_timeline).execute();
           id(draw_active_timer_widget).execute();
+
+
+touchscreen:
+  - platform: gt911
+    i2c_id: bus_a
+    interrupt_pin: GPIO3
+    update_interval: 20ms
+    on_touch:
+      - logger.log:
+          format: Touch %d at (%d, %d)
+          args: [touch.id, touch.x, touch.y]
