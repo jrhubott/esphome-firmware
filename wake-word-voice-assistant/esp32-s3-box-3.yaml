@@ -672,6 +672,7 @@ font:
 
 text_sensor:
   - id: text_request
+    name: Assist query
     platform: template
     on_value:
       lambda: |-
@@ -682,6 +683,7 @@ text_sensor:
         }
 
   - id: text_response
+    name: Assist reply
     platform: template
     on_value:
       lambda: |-
