@@ -80,6 +80,13 @@ external_components:
   - source: github://jesserockz/esphome-components
     components: [file]
     refresh: 0s
+  - source:
+      type: git
+      url: https://github.com/jrhubott/esphome_audio
+      ref: dev-next
+      #type: local
+      #path: /Users/siekmann/Privat/Projects/espHome/esphome_audio/esphome/components
+    components: [ adf_pipeline, i2s_audio ]
 
 api:
   on_client_connected:
@@ -171,16 +178,87 @@ light:
     restore_mode: RESTORE_DEFAULT_ON
     default_transition_length: 250ms
 
-esp_adf:
-  board: esp32s3box3
+i2c:
+  - id: bus_a
+    sda: GPIO8
+    scl: GPIO18
+    frequency: 100kHz
+    scan: True
+
+i2s_audio:
+  - id: i2s_shared
+    i2s_lrclk_pin: GPIO45
+    i2s_bclk_pin: GPIO17
+    i2s_mclk_pin: GPIO2
+    access_mode: duplex
+
+adf_pipeline:
+  - platform: i2s_audio
+    type: audio_out
+    id: adf_i2s_out
+    i2s_audio_id: i2s_shared
+    i2s_dout_pin: GPIO15
+    adf_alc: false
+    dac:
+      model: es8311
+      address: 0x18
+      enable_pin: GPIO46
+
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    fixed_settings: true
+
+  - platform: i2s_audio
+    type: audio_in
+    id: adf_i2s_in
+    i2s_audio_id: i2s_shared
+    i2s_din_pin: GPIO16
+    pdm: false
+    adc:
+      model: es7210
+      address: 0x40
+
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    fixed_settings: true
+
+
+media_player:
+  - platform: adf_pipeline
+    id: adf_media_player
+    name: s3-box_media_player
+    internal: false
+    keep_pipeline_alive: true
+    codec: auto
+    announcement_audio:
+      sample_rate: 16000
+      bits_per_sample: 16
+      num_channels: 1
+    pipeline:
+      - self
+      - resampler
+      - adf_i2s_out
+
+    on_idle:
+#      - display.page.show: idle_page
+      - component.update: s3_box_lcd
+
+    on_play:
+#      - display.page.show: playing_music
+      - component.update: s3_box_lcd
+
+    on_announcement:
+#      - display.page.show: announcing
+      - component.update: s3_box_lcd
 
 microphone:
-  - platform: esp_adf
+  - platform: adf_pipeline
     id: box_mic
-
-speaker:
-  - platform: esp_adf
-    id: box_speaker
+    keep_pipeline_alive: true
+    pipeline:
+      - adf_i2s_in
+      - resampler
+      - self
 
 micro_wake_word:
   model: ${micro_wake_word_model}
@@ -191,7 +269,7 @@ micro_wake_word:
 voice_assistant:
   id: va
   microphone: box_mic
-  speaker: box_speaker
+  media_player: adf_media_player
   noise_suppression_level: 2
   auto_gain: 31dBFS
   volume_multiplier: 2.0
