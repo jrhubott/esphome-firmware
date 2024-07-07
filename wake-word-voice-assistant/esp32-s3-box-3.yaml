@@ -682,6 +682,10 @@ globals:
   - id: global_is_timer
     type: bool
     restore_value: false
+  - id: speaker_volume
+    type: int
+    restore_value: no
+    initial_value: '5'
 
 image:
   - file: ${error_illustration_file}
